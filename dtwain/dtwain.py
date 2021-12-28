@@ -104,12 +104,10 @@ class dtwain:
 
 
 	def close(self):
-		print("dtwain object closed")
 		mydll.DTWAIN_ArrayDestroy(self.sourceArray)
 		mydll.DTWAIN_SysDestroy()
 
 	def __del__(self):
-		print("dtwain object destractor")
 		self.close()
 
 class dtwain_source:
