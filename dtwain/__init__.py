@@ -1,4 +1,4 @@
-from .dtwain import dtwain, mydll, arrayToList, getNameFromCap, getSourceStringList
+from .dtwain import dtwain, mydll, arrayToList, getNameFromCap, getSourceStringList, dtwain_source
 from .constants import *
 from .exceptions import *
 
@@ -9,5 +9,5 @@ __author__       = 'guredora'
 __author_email__ = 'contact@guredora.com'
 __url__          = 'https://github.com/actlaboratory/dtwain-python'
 
-__all__ = ['dtwain']
+__all__ = ['dtwain', 'dtwain_source']
 
