@@ -2,6 +2,7 @@ from . import constants
 from .exceptions import *
 import ctypes
 import os
+import pathlib
 lib = os.path.join(os.path.dirname(__file__), "bin", "dtwain32u.dll")
 mydll = ctypes.windll.LoadLibrary(lib)
 
@@ -135,13 +136,21 @@ class dtwain_source:
 		ret = mydll.DTWAIN_IsFeederLoaded(self.source)
 		return bool(ret)
 
-	def acquireFile(self, fileNameList, fileType, fileCtrlFlag = constants.DTWAIN_USELONGNAME, pixelType = constants.DTWAIN_PT_RGB, bShowUi = False):
+	def acquireFile(
+			self, fileNameList: list[pathlib.Path], fileType,
+			fileCtrlFlag=constants.DTWAIN_USELONGNAME,
+			pixelType=constants.DTWAIN_PT_RGB, bShowUi=False
+	):
 		page = 1
-		if self.isDuplexEnabled():
-			page = 2
 		nameArray = mydll.DTWAIN_ArrayCreate(constants.DTWAIN_ARRAYSTRING, page)
-		for i in range(page):
-			mydll.DTWAIN_ArraySetAtString(nameArray, i, fileNameList[i])
+		if len(fileNameList) == 1:
+			# todo: check that all pages placed in a feeder with duplex enabled are scanned
+			mydll.DTWAIN_ArraySetAtString(nameArray, 0, str(fileNameList[0]))
+		else:
+			if self.isDuplexEnabled():
+				page = 2
+			for i in range(page):
+				mydll.DTWAIN_ArraySetAtString(nameArray, i, str(fileNameList[i]))
 		self.status = ctypes.c_int()
 		mydll.DTWAIN_AcquireFileEx(self.source, nameArray, fileType, fileCtrlFlag, pixelType, page, bShowUi, True, ctypes.byref(self.status))
 		mydll.DTWAIN_ArrayDestroy(nameArray)
