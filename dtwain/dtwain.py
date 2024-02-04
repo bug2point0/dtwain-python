@@ -56,60 +56,6 @@ def raiseErrorException():
 	raise dtwainException(strBuffer.value)
 
 
-class dtwain:
-	def __init__(self, debug = True):
-		if not mydll.DTWAIN_IsTwainAvailable():
-			raise twainNotFoundError("this computer has not installed twain device.")
-		if not mydll.DTWAIN_IsInitialized():
-			mydll.DTWAIN_SysInitialize()
-		if debug:
-			mydll.DTWAIN_SetTwainLog(constants.DTWAIN_LOG_USEFILE|constants.DTWAIN_LOG_CALLSTACK|constants.DTWAIN_LOG_ERRORMSGBOX, "twain.log")
-		self.sourceArray = ctypes.c_int()
-		mydll.DTWAIN_EnumSources(ctypes.byref(self.sourceArray))
-
-	@property
-	def source_list(self):
-		sources = arrayToList(self.sourceArray)
-		return sources
-
-	@property
-	def source_string_list(self):
-		stringList = []
-		for source in self.source_list:
-			name = ctypes.create_unicode_buffer('\0' * 64)
-			mydll.DTWAIN_GetSourceProductName(source, ctypes.byref(name), 128)
-			stringList.append(name.value)
-		return stringList
-
-	def getProductName(self, source):
-		name = ctypes.create_unicode_buffer('\0' * 64)
-		mydll.DTWAIN_GetSourceProductName(source, ctypes.byref(name), 128)
-		return name.value
-
-	def getSource(self, source):
-		return dtwain_source(source)
-
-	def selectSource(self):
-		source = mydll.DTWAIN_SelectSource()
-		if source == 0:
-			return False
-		return dtwain_source(source)
-
-	def getSourceByName(self, name):
-		source = mydll.DTWAIN_SelectSourceByName(name)
-		if source == 0:
-			status = mydll.DTWAIN_GetLastError()
-			raise sourceOpenException("source open failed error code is %d" % (status))
-		return dtwain_source(source)
-
-
-	def close(self):
-		mydll.DTWAIN_ArrayDestroy(self.sourceArray)
-		mydll.DTWAIN_SysDestroy()
-
-	def __del__(self):
-		self.close()
-
 class dtwain_source:
 	def __init__(self, source):
 		self.status = 0
@@ -210,6 +156,14 @@ class dtwain_source:
 		ret = mydll.DTWAIN_SetBlankPageDetection(self.source, ctypes.c_double(threshold), ctypes.c_long(options), enable)
 		return ret
 
+	def set_pdf_paper_size(self, paper_size=constants.DTWAIN_FS_A4):
+		ret = mydll.DTWAIN_SetPDFPageSize(
+			self.source,
+			ctypes.c_long(paper_size)
+		)
+		return ret
+
+
 	def isCapSupported(self, cap):
 		supported = mydll.DTWAIN_IsCapSupported(self.source, cap)
 		return bool(supported)
@@ -236,6 +190,61 @@ class dtwain_source:
 			ret = mydll.DTWAIN_CloseSource(self.source)
 			if not ret:
 				raise dtwainException("source close failed")
+
+	def __del__(self):
+		self.close()
+
+
+class dtwain:
+	def __init__(self, debug = True):
+		if not mydll.DTWAIN_IsTwainAvailable():
+			raise twainNotFoundError("this computer has not installed twain device.")
+		if not mydll.DTWAIN_IsInitialized():
+			mydll.DTWAIN_SysInitialize()
+		if debug:
+			mydll.DTWAIN_SetTwainLog(constants.DTWAIN_LOG_USEFILE|constants.DTWAIN_LOG_CALLSTACK|constants.DTWAIN_LOG_ERRORMSGBOX, "twain.log")
+		self.sourceArray = ctypes.c_int()
+		mydll.DTWAIN_EnumSources(ctypes.byref(self.sourceArray))
+
+	@property
+	def source_list(self):
+		sources = arrayToList(self.sourceArray)
+		return sources
+
+	@property
+	def source_string_list(self):
+		stringList = []
+		for source in self.source_list:
+			name = ctypes.create_unicode_buffer('\0' * 64)
+			mydll.DTWAIN_GetSourceProductName(source, ctypes.byref(name), 128)
+			stringList.append(name.value)
+		return stringList
+
+	def getProductName(self, source):
+		name = ctypes.create_unicode_buffer('\0' * 64)
+		mydll.DTWAIN_GetSourceProductName(source, ctypes.byref(name), 128)
+		return name.value
+
+	def getSource(self, source):
+		return dtwain_source(source)
+
+	def selectSource(self):
+		source = mydll.DTWAIN_SelectSource()
+		if source == 0:
+			return False
+		return dtwain_source(source)
+
+	def getSourceByName(self, name) -> dtwain_source:
+		source = mydll.DTWAIN_SelectSourceByName(name)
+		if source == 0:
+			status = mydll.DTWAIN_GetLastError()
+			raise sourceOpenException("source open failed error code is %d" % (status))
+		return dtwain_source(source)
+
+
+	def close(self):
+		mydll.DTWAIN_ArrayDestroy(self.sourceArray)
+		mydll.DTWAIN_SysDestroy()
 
 	def __del__(self):
 		self.close()
